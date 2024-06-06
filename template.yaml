@@ -1,0 +1,492 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  project-web-integral
+
+  Sample SAM Template for project-web-integral
+
+Globals:
+  Function:
+    Timeout: 3
+
+Resources:
+  LambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: LambdaBasicExecution
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: arn:aws:logs:*:*:*
+
+  ProductApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      Name: "ProductApi"
+      StageName: Prod
+
+  SupplierApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      Name: "SupplierApi"
+      StageName: Prod
+
+  UserApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      Name: "UserApi"
+      StageName: Prod
+
+  RegisterUserFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: register_user/
+      Handler: app.lambda_handler
+      Runtime: python3.12
+      Architectures:
+        - x86_64
+      Events:
+        RegisterUser:
+          Type: Api
+          Properties:
+            RestApiId: !Ref UserApi
+            Path: /user/insert
+            Method: post
+      Policies:
+        - AWSLambdaBasicExecutionRole
+
+  RegisterProductFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: register_product/
+      Handler: app.lambda_handler
+      Runtime: python3.12
+      Architectures:
+        - x86_64
+      Events:
+        RegisterProduct:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ProductApi
+            Path: /product/insert
+            Method: post
+      Policies:
+        - AWSLambdaBasicExecutionRole
+
+  RegisterSupplierFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: register_supplier/
+      Handler: app.lambda_handler
+      Runtime: python3.12
+      Architectures:
+        - x86_64
+      Events:
+        RegisterSupplier:
+          Type: Api
+          Properties:
+            RestApiId: !Ref SupplierApi
+            Path: /supplier/insert
+            Method: post
+      Policies:
+        - AWSLambdaBasicExecutionRole
+
+  RegisterCartFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: register_cart/
+      Handler: app.lambda_handler
+      Runtime: python3.12
+      Architectures:
+        - x86_64
+      Events:
+        RegisterCart:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ProductApi
+            Path: /cart/insert/{id}
+            Method: post
+      Policies:
+        - AWSLambdaBasicExecutionRole
+
+  GetUserFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: get_user/
+      Handler: app.lambda_handler
+      Runtime: python3.12
+      Architectures:
+        - x86_64
+      Events:
+        GetUser:
+          Type: Api
+          Properties:
+            RestApiId: !Ref UserApi
+            Path: /user/get/{id}
+            Method: get
+      Policies:
+        - AWSLambdaBasicExecutionRole
+
+  GetProductFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: get_product/
+      Handler: app.lambda_handler
+      Runtime: python3.12
+      Architectures:
+        - x86_64
+      Events:
+        GetProduct:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ProductApi
+            Path: /product/get/{id}
+            Method: get
+      Policies:
+        - AWSLambdaBasicExecutionRole
+
+  GetSupplierFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: get_supplier/
+      Handler: app.lambda_handler
+      Runtime: python3.12
+      Architectures:
+        - x86_64
+      Events:
+        GetSupplier:
+          Type: Api
+          Properties:
+            RestApiId: !Ref SupplierApi
+            Path: /supplier/get/{id}
+            Method: get
+      Policies:
+        - AWSLambdaBasicExecutionRole
+
+  GetUsersFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: get_users/
+      Handler: app.lambda_handler
+      Runtime: python3.12
+      Architectures:
+        - x86_64
+      Events:
+        GetUsers:
+          Type: Api
+          Properties:
+            RestApiId: !Ref UserApi
+            Path: /user/getAll
+            Method: get
+      Policies:
+        - AWSLambdaBasicExecutionRole
+
+  GetProductsFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: get_products/
+      Handler: app.lambda_handler
+      Runtime: python3.12
+      Architectures:
+        - x86_64
+      Events:
+        GetProducts:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ProductApi
+            Path: /product/getAll
+            Method: get
+      Policies:
+        - AWSLambdaBasicExecutionRole
+
+  GetSuppliersFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: get_suppliers/
+      Handler: app.lambda_handler
+      Runtime: python3.12
+      Architectures:
+        - x86_64
+      Events:
+        GetSuppliers:
+          Type: Api
+          Properties:
+            RestApiId: !Ref SupplierApi
+            Path: /supplier/getAll
+            Method: get
+      Policies:
+        - AWSLambdaBasicExecutionRole
+
+  UpdateUserFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: update_user/
+      Handler: app.lambda_handler
+      Runtime: python3.12
+      Architectures:
+        - x86_64
+      Events:
+        UpdateUser:
+          Type: Api
+          Properties:
+            RestApiId: !Ref UserApi
+            Path: /user/update/{id}
+            Method: patch
+      Policies:
+        - AWSLambdaBasicExecutionRole
+
+  UpdateProductFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: update_product/
+      Handler: app.lambda_handler
+      Runtime: python3.12
+      Architectures:
+        - x86_64
+      Events:
+        UpdateProduct:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ProductApi
+            Path: /product/update/{id}
+            Method: patch
+      Policies:
+        - AWSLambdaBasicExecutionRole
+
+  UpdateSupplierFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: update_supplier/
+      Handler: app.lambda_handler
+      Runtime: python3.12
+      Architectures:
+        - x86_64
+      Events:
+        UpdateSupplier:
+          Type: Api
+          Properties:
+            RestApiId: !Ref SupplierApi
+            Path: /supplier/update/{id}
+            Method: patch
+      Policies:
+        - AWSLambdaBasicExecutionRole
+
+  UpdateCartFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: update_cart/
+      Handler: app.lambda_handler
+      Runtime: python3.12
+      Architectures:
+        - x86_64
+      Events:
+        UpdateCart:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ProductApi
+            Path: /cart/update/{id}
+            Method: patch
+      Policies:
+        - AWSLambdaBasicExecutionRole
+
+  DeleteUserFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: delete_user/
+      Handler: app.lambda_handler
+      Runtime: python3.12
+      Architectures:
+        - x86_64
+      Events:
+        DeleteUser:
+          Type: Api
+          Properties:
+            RestApiId: !Ref UserApi
+            Path: /user/delete/{id}
+            Method: delete
+      Policies:
+        - AWSLambdaBasicExecutionRole
+
+  DeleteProductFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: delete_product/
+      Handler: app.lambda_handler
+      Runtime: python3.12
+      Architectures:
+        - x86_64
+      Events:
+        DeleteProduct:
+          Type: Api
+          Properties:
+            RestApiId: !Ref ProductApi
+            Path: /product/delete/{id}
+            Method: delete
+      Policies:
+        - AWSLambdaBasicExecutionRole
+
+  DeleteSupplierFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: delete_supplier/
+      Handler: app.lambda_handler
+      Runtime: python3.12
+      Architectures:
+        - x86_64
+      Events:
+        DeleteSupplier:
+          Type: Api
+          Properties:
+            RestApiId: !Ref SupplierApi
+            Path: /supplier/delete/{id}
+            Method: delete
+      Policies:
+        - AWSLambdaBasicExecutionRole
+
+
+Outputs:
+  RegisterUserApiUrl:
+    Description: "Register User API Gateway endpoint"
+    Value: !Sub "https://${UserApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/user/insert"
+
+  RegisterProductApiUrl:
+    Description: "Register Product API Gateway endpoint"
+    Value: !Sub "https://${ProductApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/product/insert"
+
+  RegisterSupplierApiUrl:
+    Description: "Register Supplier API Gateway endpoint"
+    Value: !Sub "https://${SupplierApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/supplier/insert"
+
+  RegisterCartApiUrl:
+    Description: "Register Cart API Gateway endpoint"
+    Value: !Sub "https://${ProductApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/cart/insert/{id}"
+
+  GetUserApiUrl:
+    Description: "Get User API Gateway endpoint"
+    Value: !Sub "https://${UserApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/user/get/{id}"
+
+  GetProductApiUrl:
+    Description: "Get Product API Gateway endpoint"
+    Value: !Sub "https://${ProductApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/product/get/{id}"
+
+  GetSupplierApiUrl:
+    Description: "Get Supplier API Gateway endpoint"
+    Value: !Sub "https://${SupplierApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/supplier/get/{id}"
+
+  GetUsersApiUrl:
+    Description: "Get Users API Gateway endpoint"
+    Value: !Sub "https://${UserApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/user/getAll"
+
+  GetProductsApiUrl:
+    Description: "Get Products API Gateway endpoint"
+    Value: !Sub "https://${ProductApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/product/getAll"
+
+  GetSuppliersApiUrl:
+    Description: "Get Suppliers API Gateway endpoint"
+    Value: !Sub "https://${SupplierApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/supplier/getAll"
+
+  UpdateProductApiUrl:
+    Description: "Update Product API Gateway endpoint"
+    Value: !Sub "https://${ProductApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/product/update/{id}"
+
+  UpdateSupplierApiUrl:
+    Description: "Update Supplier API Gateway endpoint"
+    Value: !Sub "https://${SupplierApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/supplier/update/{id}"
+
+  UpdateCartApiUrl:
+    Description: "Update Cart API Gateway endpoint"
+    Value: !Sub "https://${ProductApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/cart/update/{id}"
+
+  DeleteUserApiUrl:
+    Description: "Delete User API Gateway endpoint"
+    Value: !Sub "https://${UserApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/user/delete/{id}"
+
+  DeleteProductApiUrl:
+    Description: "Delete Product API Gateway endpoint"
+    Value: !Sub "https://${ProductApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/product/delete/{id}"
+
+  DeleteSupplierApiUrl:
+    Description: "Delete Supplier API Gateway endpoint"
+    Value: !Sub "https://${SupplierApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/supplier/delete/{id}"
+
+  RegisterUserFunctionArn:
+    Description: "Register User Lambda Function ARN"
+    Value: !GetAtt RegisterUserFunction.Arn
+
+  RegisterProductFunctionArn:
+    Description: "Register Product Lambda Function ARN"
+    Value: !GetAtt RegisterProductFunction.Arn
+
+  RegisterSupplierFunctionArn:
+    Description: "Register Supplier Lambda Function ARN"
+    Value: !GetAtt RegisterSupplierFunction.Arn
+
+  RegisterCartFunctionArn:
+    Description: "Register Cart Lambda Function ARN"
+    Value: !GetAtt RegisterCartFunction.Arn
+
+  GetUserFunctionArn:
+    Description: "Get User Lambda Function ARN"
+    Value: !GetAtt GetUserFunction.Arn
+
+  GetProductFunctionArn:
+    Description: "Get Product Lambda Function ARN"
+    Value: !GetAtt GetProductFunction.Arn
+
+  GetSupplierFunctionArn:
+    Description: "Get Supplier Lambda Function ARN"
+    Value: !GetAtt GetSupplierFunction.Arn
+
+  GetUsersFunctionArn:
+    Description: "Get Users Lambda Function ARN"
+    Value: !GetAtt GetUsersFunction.Arn
+
+  GetProductsFunctionArn:
+    Description: "Get Products Lambda Function ARN"
+    Value: !GetAtt GetProductsFunction.Arn
+
+  GetSuppliersFunctionArn:
+    Description: "Get Suppliers Lambda Function ARN"
+    Value: !GetAtt GetSuppliersFunction.Arn
+
+  UpdateUserFunctionArn:
+    Description: "Update User Lambda Function ARN"
+    Value: !GetAtt UpdateUserFunction.Arn
+
+  UpdateProductFunctionArn:
+    Description: "Update Product Lambda Function ARN"
+    Value: !GetAtt UpdateProductFunction.Arn
+
+  UpdateSupplierFunctionArn:
+    Description: "Update Supplier Lambda Function ARN"
+    Value: !GetAtt UpdateSupplierFunction.Arn
+
+  UpdateCartFunctionArn:
+    Description: "Update Cart Lambda Function ARN"
+    Value: !GetAtt UpdateCartFunction.Arn
+
+  DeleteUserFunctionArn:
+    Description: "Delete User Lambda Function ARN"
+    Value: !GetAtt DeleteUserFunction.Arn
+
+  DeleteProductFunctionArn:
+    Description: "Delete Product Lambda Function ARN"
+    Value: !GetAtt DeleteProductFunction.Arn
+
+  DeleteSupplierFunctionArn:
+    Description: "Delete Supplier Lambda Function ARN"
+    Value: !GetAtt DeleteSupplierFunction.Arn
+
