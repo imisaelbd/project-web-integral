@@ -17,11 +17,12 @@ lint = true
 capabilities = "CAPABILITY_IAM"
 confirm_changeset = true
 resolve_s3 = true
-s3_prefix = "project-web-integral"
+s3_prefix = "jhbasjkhdjkhasdjkhjkhasdjkhasdjkhasd"
 region = "us-east-1"
-profile = "misaelbd"
+profile = "EmmanuelJmz"
 disable_rollback = true
 image_repositories = []
+stack_name = "jhbasjkhdjkhasdjkhjkhasdjkhasdjkhasd"
 
 [default.package.parameters]
 resolve_s3 = true

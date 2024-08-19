@@ -5,8 +5,8 @@ from botocore.exceptions import ClientError
 
 def lambda_handler(event, __):
     client = boto3.client('cognito-idp', region_name='us-east-1')
-    user_pool_id = "us-east-1_lGjX24BuI"
-    client_id = "7spm11b94qt7oa3r25ol9j80st"
+    user_pool_id = "us-east-1_70RcA9tNK"
+    client_id = "5p2mi7alm0k3l2rsfgn4vkfnub"
     try:
         # Parsea el body del evento
         body_parameters = json.loads(event["body"])
