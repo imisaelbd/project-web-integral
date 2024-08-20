@@ -245,11 +245,11 @@ Resources:
   ProductAuthorizer:
     Type: AWS::ApiGateway::Authorizer
     Properties:
-      Name: ProductAuthorizer
+      Name: ProductAuthorizerV2  # Changed the name to be unique
       IdentitySource: method.request.header.Authorization
       RestApiId: !Ref ProductApi
       Type: COGNITO_USER_POOLS
-      ProductARNs:
+      ProviderARNs:
         - !GetAtt MyCognitoUserPool.Arn
 
   DefaultUnauthorizedResponseProductApi:
@@ -430,11 +430,11 @@ Resources:
   SupplierAuthorizer:
     Type: AWS::ApiGateway::Authorizer
     Properties:
-      Name: SupplierAuthorizer
+      Name: SupplierAuthorizerV2  # Changed the name to be unique
       IdentitySource: method.request.header.Authorization
       RestApiId: !Ref SupplierApi
       Type: COGNITO_USER_POOLS
-      SupplierARNs:
+      ProviderARNs:
         - !GetAtt MyCognitoUserPool.Arn
 
   DefaultUnauthorizedResponseSupplierApi:
@@ -629,11 +629,11 @@ Resources:
   UserAuthorizer:
     Type: AWS::ApiGateway::Authorizer
     Properties:
-      Name: UserAuthorizer
+      Name: UserAuthorizerV2  # Changed the name to be unique
       IdentitySource: method.request.header.Authorization
       RestApiId: !Ref UserApi
       Type: COGNITO_USER_POOLS
-      UserARNs:
+      ProviderARNs:
         - !GetAtt MyCognitoUserPool.Arn
 
   DefaultUnauthorizedResponseUserApi:
@@ -820,6 +820,8 @@ Resources:
             RestApiId: !Ref UserApi
             Path: /cart/insert/{id}
             Method: post
+            Auth:
+              Authorizer: UserAuthorizer
 
   UpdateCartFunction:
     Type: AWS::Serverless::Function
@@ -835,82 +837,84 @@ Resources:
             RestApiId: !Ref UserApi
             Path: /cart/update/{id}
             Method: patch
+            Auth:
+              Authorizer: UserAuthorizer
 
-
-  AuthApi:
-    Type: AWS::Serverless::Api
-    Properties:
-      StageName: Prod
-      Name: AuthApi
-
-  LoginFunctionLogGroup:
-    Type: AWS::Logs::LogGroup
-    Properties:
-      LogGroupName: !Sub '/aws/lambda/${LoginFunction}'
-      RetentionInDays: 14
-
-  LoginFunction:
-    Type: AWS::Serverless::Function
-    Properties:
-      CodeUri: login/
-      Handler: login.lambda_handler
-      Runtime: python3.12
-      Role: !GetAtt LambdaExecutionRole.Arn
-      Architectures:
-        - x86_64
-      Events:
-        Login:
-          Type: Api
-          Properties:
-            RestApiId: !Ref AuthApi
-            Path: /login
-            Method: post
-
-  SetPasswordFunctionLogGroup:
-    Type: AWS::Logs::LogGroup
-    Properties:
-      LogGroupName: !Sub '/aws/lambda/${SetPasswordFunction}'
-      RetentionInDays: 14
-
-  SetPasswordFunction:
-    Type: AWS::Serverless::Function
-    Properties:
-      CodeUri: set_password/
-      Handler: set_password.lambda_handler
-      Runtime: python3.12
-      Role: !GetAtt LambdaExecutionRole.Arn
-      Architectures:
-        - x86_64
-      Events:
-        SetPassword:
-          Type: Api
-          Properties:
-            RestApiId: !Ref AuthApi
-            Path: /set_password
-            Method: post
-
-  InsertUserPoolFunctionLogGroup:
-    Type: AWS::Logs::LogGroup
-    Properties:
-      LogGroupName: !Sub '/aws/lambda/${InsertUserPoolFunction}'
-      RetentionInDays: 14
-
-  InsertUserPoolFunction:
-    Type: AWS::Serverless::Function
-    Properties:
-      CodeUri: insert_user_pool/
-      Handler: insert_user_pool.lambda_handler
-      Runtime: python3.12
-      Role: !GetAtt LambdaExecutionRole.Arn
-      Architectures:
-        - x86_64
-      Events:
-        InsertUserPool:
-          Type: Api
-          Properties:
-            RestApiId: !Ref AuthApi
-            Path: /insert_user_pool
-            Method: post
+#
+#  AuthApi:
+#    Type: AWS::Serverless::Api
+#    Properties:
+#      StageName: Prod
+#      Name: AuthApi
+#
+#  LoginFunctionLogGroup:
+#    Type: AWS::Logs::LogGroup
+#    Properties:
+#      LogGroupName: !Sub '/aws/lambda/${LoginFunction}'
+#      RetentionInDays: 14
+#
+#  LoginFunction:
+#    Type: AWS::Serverless::Function
+#    Properties:
+#      CodeUri: login/
+#      Handler: login.lambda_handler
+#      Runtime: python3.12
+#      Role: !GetAtt LambdaExecutionRole.Arn
+#      Architectures:
+#        - x86_64
+#      Events:
+#        Login:
+#          Type: Api
+#          Properties:
+#            RestApiId: !Ref AuthApi
+#            Path: /login
+#            Method: post
+#
+#  SetPasswordFunctionLogGroup:
+#    Type: AWS::Logs::LogGroup
+#    Properties:
+#      LogGroupName: !Sub '/aws/lambda/${SetPasswordFunction}'
+#      RetentionInDays: 14
+#
+#  SetPasswordFunction:
+#    Type: AWS::Serverless::Function
+#    Properties:
+#      CodeUri: set_password/
+#      Handler: set_password.lambda_handler
+#      Runtime: python3.12
+#      Role: !GetAtt LambdaExecutionRole.Arn
+#      Architectures:
+#        - x86_64
+#      Events:
+#        SetPassword:
+#          Type: Api
+#          Properties:
+#            RestApiId: !Ref AuthApi
+#            Path: /set_password
+#            Method: post
+#
+#  InsertUserPoolFunctionLogGroup:
+#    Type: AWS::Logs::LogGroup
+#    Properties:
+#      LogGroupName: !Sub '/aws/lambda/${InsertUserPoolFunction}'
+#      RetentionInDays: 14
+#
+#  InsertUserPoolFunction:
+#    Type: AWS::Serverless::Function
+#    Properties:
+#      CodeUri: insert_user_pool/
+#      Handler: insert_user_pool.lambda_handler
+#      Runtime: python3.12
+#      Role: !GetAtt LambdaExecutionRole.Arn
+#      Architectures:
+#        - x86_64
+#      Events:
+#        InsertUserPool:
+#          Type: Api
+#          Properties:
+#            RestApiId: !Ref AuthApi
+#            Path: /insert_user_pool
+#            Method: post
 
 
 Outputs:
@@ -978,21 +982,21 @@ Outputs:
     Description: "Delete Supplier API Gateway endpoint"
     Value: !Sub "https://${SupplierApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/supplier/delete/{id}"
 
-  LoginFunctionArn:
-    Description: "ARN of LoginFunction"
-    Value: !GetAtt LoginFunction.Arn
+#  LoginFunctionArn:
+#    Description: "ARN of LoginFunction"
+#    Value: !GetAtt LoginFunction.Arn
+#
+#  SetPasswordFunctionArn:
+#    Description: "ARN of SetPasswordFunction"
+#    Value: !GetAtt SetPasswordFunction.Arn
+#
+#  InsertUserPoolFunctionArn:
+#    Description: "ARN of InsertUserPoolFunction"
+#    Value: !GetAtt InsertUserPoolFunction.Arn
 
-  SetPasswordFunctionArn:
-    Description: "ARN of SetPasswordFunction"
-    Value: !GetAtt SetPasswordFunction.Arn
-
-  InsertUserPoolFunctionArn:
-    Description: "ARN of InsertUserPoolFunction"
-    Value: !GetAtt InsertUserPoolFunction.Arn
-
-  ApiUrl:
-    Description: "URL of the API Gateway"
-    Value: !Sub "https://${AuthApi}.execute-api.${AWS::Region}.amazonaws.com/Prod"
+#  ApiUrl:
+#    Description: "URL of the API Gateway"
+#    Value: !Sub "https://${AuthApi}.execute-api.${AWS::Region}.amazonaws.com/Prod"
 
   RegisterUserFunctionArn:
     Description: "Register User Lambda Function ARN"

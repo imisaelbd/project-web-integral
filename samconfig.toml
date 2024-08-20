@@ -17,12 +17,12 @@ lint = true
 capabilities = "CAPABILITY_IAM"
 confirm_changeset = true
 resolve_s3 = true
-s3_prefix = "jhbasjkhdjkhasdjkhjkhasdjkhasdjkhasd"
+s3_prefix = "aws-web-deploy"
 region = "us-east-1"
 profile = "EmmanuelJmz"
 disable_rollback = true
 image_repositories = []
-stack_name = "jhbasjkhdjkhasdjkhjkhasdjkhasdjkhasd"
+stack_name = "aws-web-deploy"
 
 [default.package.parameters]
 resolve_s3 = true
