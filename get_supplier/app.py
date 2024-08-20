@@ -15,7 +15,7 @@ def lambda_handler(event, __):
             return {
                 "statusCode": 400,
                 "body": json.dumps({
-                    "message": "El ID del proveedor es requerido en la ruta de la URL"
+                    "message": "El ID del proveedor es requerido en la ruta"
                 })
             }
 
@@ -23,7 +23,7 @@ def lambda_handler(event, __):
             return {
                 "statusCode": 400,
                 "body": json.dumps({
-                    "message": f"'{supplier_id}' no es un ObjectId válido. Debe ser una cadena hexadecimal de 24 caracteres."
+                    "message": f"'{supplier_id}' no es un ObjectId válido. Este debe ser una cadena hexadecimal de 24 caracteres."
                 })
             }
 
@@ -42,7 +42,7 @@ def lambda_handler(event, __):
             return {
                 "statusCode": 404,
                 "body": json.dumps({
-                    "message": "No se encontró el proveedor con el ID proporcionado"
+                    "message": "No se encontró el proveedor con el ID dado"
                 })
             }
 

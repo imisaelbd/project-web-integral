@@ -74,13 +74,14 @@ def generate_temporary_password(length=12):
     characters = string.ascii_letters + string.digits + special_characters
 
     while True:
-        # Genera una contraseña aleatoria
+        # Genera un password aleatorio
         password = ''.join(random.choice(characters) for _ in range(length))
 
-        # Verifica los criterios
+        # Verifica la seguridad de los criterios
         has_digit = any(char.isdigit() for char in password)
         has_upper = any(char.isupper() for char in password)
         has_lower = any(char.islower() for char in password)
+
         has_special = any(char in special_characters for char in password)
 
         if has_digit and has_upper and has_lower and has_special and len(password) >= 8:

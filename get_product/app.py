@@ -15,7 +15,7 @@ def lambda_handler(event, __):
             return {
                 "statusCode": 400,
                 "body": json.dumps({
-                    "message": "El ID del producto es requerido en la ruta de la URL"
+                    "message": "El ID del producto es obligatorio en la ruta de la URL"
                 })
             }
 
@@ -43,7 +43,7 @@ def lambda_handler(event, __):
             return {
                 "statusCode": 404,
                 "body": json.dumps({
-                    "message": "No se encontró el producto con el ID proporcionado"
+                    "message": "No se encontró ningun producto con el ID dado"
                 })
             }
 
