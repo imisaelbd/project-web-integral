@@ -25,13 +25,13 @@ def lambda_handler(event, __):
         access_token = response['AuthenticationResult']['AccessToken']
         refresh_token = response['AuthenticationResult']['RefreshToken']
 
-        # Obtén los grupos del usuario
+        # Obtiene los grupos de usuarios
         user_groups = client.admin_list_groups_for_user(
             Username=username,
             UserPoolId='us-east-1_lGjX24BuI'  # Reemplaza con tu User Pool ID
         )
 
-        # Determina el rol basado en el grupo
+        # Determina el rol por el grupo al que pertenece el usuario
         role = None
         if user_groups['Groups']:
             role = user_groups['Groups'][0]['GroupName']  # Asumiendo un usuario pertenece a un solo grupo

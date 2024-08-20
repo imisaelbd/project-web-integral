@@ -19,15 +19,19 @@ def lambda_handler(event, __):
             }
 
         data = json.loads(body)
+
         fullname = data.get('fullname')
+
         user = data.get('user')
+
         password = data.get('password')
+
 
         if not fullname or not user or not password:
             return {
                 "statusCode": 400,
                 "body": json.dumps({
-                    "message": "Todos los campos son requeridos (fullname, user, password)"
+                    "message": "Todos los campos son obligatorios (fullname, user, password)"
                 })
             }
 
@@ -67,7 +71,7 @@ def lambda_handler(event, __):
                 })
             }
 
-    except Exception as e:
+    except Exception as e: 
         return {
             "statusCode": 500,
             "body": json.dumps({

@@ -16,7 +16,7 @@ def lambda_handler(event, __):
             return {
                 "statusCode": 400,
                 "body": json.dumps({
-                    "message": "El campo 'id' del carrito es requerido en la URL"
+                    "message": "El campo ID del carrito es obligatorio en la URL"
                 })
             }
 
@@ -24,7 +24,7 @@ def lambda_handler(event, __):
             return {
                 "statusCode": 400,
                 "body": json.dumps({
-                    "message": f"El ID del carrito '{cart_id}' no es válido."
+                    "message": f"El ID del carrito '{cart_id}' no es válido"
                 })
             }
 
@@ -33,7 +33,7 @@ def lambda_handler(event, __):
             return {
                 "statusCode": 400,
                 "body": json.dumps({
-                    "message": "El cuerpo de la petición es requerido"
+                    "message": "El cuerpo de la petición es obligatorio"
                 })
             }
 
@@ -107,7 +107,7 @@ def lambda_handler(event, __):
         return {
             "statusCode": 200,
             "body": json.dumps({
-                "message": "Producto agregado al carrito correctamente",
+                "message": "Producto agregado al carrito de compras exitosamente",
                 "cart": cart
             }, indent=2)
         }

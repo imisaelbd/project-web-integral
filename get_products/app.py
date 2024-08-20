@@ -13,6 +13,7 @@ def lambda_handler(event, __):
 
         for product in products:
             product['_id'] = str(product['_id'])
+
             product['supplier'] = str(product['supplier'])
 
         return {
@@ -26,7 +27,5 @@ def lambda_handler(event, __):
     except Exception as e:
         return {
             "statusCode": 500,
-            "body": json.dumps({
-                "message": str(e)
-            })
+            "body": json.dumps({"message": str(e)})
         }

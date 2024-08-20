@@ -10,9 +10,12 @@ def lambda_handler(event, __):
     try:
         token = event['headers']['Authorization'].split()[1]
 
-        decoded_token = jwt.decode(token, options={"verify_signature": False})
+        decoded_token = jwt.decode(
+            token, options={"verify_signature": False}
+        )
 
         role = decoded_token.get('cognito:groups', [''])[0]
+
 
         db = client['project-web-integral']
         collection = db['users']

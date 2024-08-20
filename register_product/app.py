@@ -31,7 +31,7 @@ def lambda_handler(event, __):
             return {
                 "statusCode": 400,
                 "body": json.dumps({
-                    "message": "Todos los campos son requeridos"
+                    "message": "Todos los campos son obliatorios"
                 })
             }
 
@@ -50,7 +50,7 @@ def lambda_handler(event, __):
             return {
                 "statusCode": 409,
                 "body": json.dumps({
-                    "message": f"El producto '{name}' ya existe en la base de datos",
+                    "message": f"El producto '{name}' ya existe en la base de datos, intenta con uno nuevo",
                     "product": existing_product
                 }, indent=2)
             }
@@ -69,6 +69,7 @@ def lambda_handler(event, __):
             'price': price,
             'stock': stock,
             'description': description,
+
             'supplier': {
                 '$ref': 'suppliers',
                 '$id': ObjectId(id_supplier)
@@ -83,7 +84,7 @@ def lambda_handler(event, __):
             return {
                 "statusCode": 200,
                 "body": json.dumps({
-                    "message": "Producto registrado correctamente",
+                    "message": "Producto registrado exitosamente",
                     "product": product
                 }, indent=2)
             }
@@ -91,7 +92,7 @@ def lambda_handler(event, __):
             return {
                 "statusCode": 500,
                 "body": json.dumps({
-                    "message": "Error al insertar el producto"
+                    "message": "Ocurrio un error al insertar el producto"
                 })
             }
 

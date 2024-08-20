@@ -46,7 +46,7 @@ def lambda_handler(event, __):
             return {
                 "statusCode": 400,
                 "body": json.dumps({
-                    "message": "Al menos un campo (name, price, stock, description) es requerido para la actualización"
+                    "message": "Al menos un campo (name, price, stock, description) es requerido para poder actualizar"
                 })
             }
 
@@ -70,6 +70,7 @@ def lambda_handler(event, __):
                 "statusCode": 200,
                 "body": json.dumps({
                     "message": "Producto actualizado correctamente",
+
                     "updated_fields": update_fields
                 }, indent=2)
             }
