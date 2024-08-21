@@ -1,121 +1,68 @@
 import json
-from pymongo import MongoClient
-from bson import ObjectId
+import boto3
+from botocore.exceptions import ClientError
 
-client = MongoClient('mongodb+srv://misaelbd:Kk6n.c27JN.RSLK@mongodb-mbd.fqz75ib.mongodb.net/?retryWrites=true&w=majority&appName=MongoDB-MBD')
-
+headers_open = {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Headers': '*',
+    'Access-Control-Allow-Methods': 'GET,PUT,POST,DELETE,OPTIONS',
+}
 
 def lambda_handler(event, __):
+    client = boto3.client('cognito-idp', region_name='us-east-1')
+    user_pool_id = "us-east-1_0CdCxDU3u"
+    client_id = "iocn20os51ea9of20bu4jg362"
+
     try:
-        db = client['project-web-integral']
-        carts_collection = db['carts']
-        products_collection = db['products']
+        # Parsea el body del evento
+        body_parameters = json.loads(event["body"])
+        username = body_parameters.get('username')
+        temporary_password = body_parameters.get('temporary_password')
+        new_password = body_parameters.get('new_password')
 
-        cart_id = event.get('pathParameters', {}).get('id')
-        if not cart_id:
+        # Autentica al usuario con la contraseña temporal
+        response = client.admin_initiate_auth(
+            UserPoolId=user_pool_id,
+            ClientId=client_id,
+            AuthFlow='ADMIN_USER_PASSWORD_AUTH',
+            AuthParameters={
+                'USERNAME': username,
+                'PASSWORD': temporary_password
+            }
+        )
+
+        if response['ChallengeName'] == 'NEW_PASSWORD_REQUIRED':
+            client.respond_to_auth_challenge(
+                ClientId=client_id,
+                ChallengeName='NEW_PASSWORD_REQUIRED',
+                Session=response['Session'],
+                ChallengeResponses={
+                    'USERNAME': username,
+                    'NEW_PASSWORD': new_password,
+                    'email_verified': 'true'
+                }
+            )
             return {
-                "statusCode": 400,
-                "body": json.dumps({
-                    "message": "El campo ID del carrito es obligatorio en la URL"
-                })
+                'statusCode': 200,
+                'headers': headers_open,
+                'body': json.dumps({"message": "Password changed successfully."})
+            }
+        else:
+            return {
+                'statusCode': 400,
+                'headers': headers_open,
+                'body': json.dumps({"error_message": "Unexpected challenge."})
             }
 
-        if not ObjectId.is_valid(cart_id):
-            return {
-                "statusCode": 400,
-                "body": json.dumps({
-                    "message": f"El ID del carrito '{cart_id}' no es válido"
-                })
-            }
-
-        body = event.get('body')
-        if not body:
-            return {
-                "statusCode": 400,
-                "body": json.dumps({
-                    "message": "El cuerpo de la petición es obligatorio"
-                })
-            }
-
-        data = json.loads(body)
-        product_id = data.get('product_id')
-        quantity = data.get('quantity')
-
-        if not product_id or not quantity or quantity <= 0:
-            return {
-                "statusCode": 400,
-                "body": json.dumps({
-                    "message": "Se requiere el 'product_id' y una 'quantity' válida mayor que cero."
-                })
-            }
-
-        if not ObjectId.is_valid(product_id):
-            return {
-                "statusCode": 400,
-                "body": json.dumps({
-                    "message": f"El ID del producto '{product_id}' no es válido."
-                })
-            }
-
-        cart = carts_collection.find_one({"_id": ObjectId(cart_id)})
-        if not cart:
-            return {
-                "statusCode": 404,
-                "body": json.dumps({
-                    "message": f"No se encontró el carrito con el ID '{cart_id}'"
-                })
-            }
-
-        product = products_collection.find_one({"_id": ObjectId(product_id)})
-        if not product:
-            return {
-                "statusCode": 404,
-                "body": json.dumps({
-                    "message": f"No se encontró el producto con el ID '{product_id}'"
-                })
-            }
-
-        product_price = product.get('price')
-        if not product_price:
-            return {
-                "statusCode": 500,
-                "body": json.dumps({
-                    "message": f"No se pudo obtener el precio del producto con el ID '{product_id}'"
-                })
-            }
-
-        total = cart.get('total', 0)
-        total += product_price * quantity
-        cart['total'] = total
-
-        product_data = {
-            "id": str(product['_id']),
-            "name": product.get('name'),
-            "price": product_price,
-            "quantity": quantity
-        }
-
-        cart_products = cart.get('products', [])
-        cart_products.append(product_data)
-        cart['products'] = cart_products
-
-        carts_collection.update_one({"_id": ObjectId(cart_id)}, {"$set": cart})
-
-        cart['_id'] = str(cart['_id'])
-        cart['user'] = str(cart['user'])
-
+    except ClientError as e:
         return {
-            "statusCode": 200,
-            "body": json.dumps({
-                "message": "Producto agregado al carrito de compras exitosamente",
-                "cart": cart
-            }, indent=2)
+            'statusCode': 400,
+            'headers': headers_open,
+            'body': json.dumps({"error_message": e.response['Error']['Message']})
         }
-
     except Exception as e:
         return {
-            "statusCode": 500,
-            "body": json.dumps({
-                "message": str(e)
-            })
+            'statusCode': 500,
+            'headers': headers_open,
+            'body': json.dumps({"error_message": str(e)})
         }

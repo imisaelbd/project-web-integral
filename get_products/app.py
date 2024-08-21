@@ -1,6 +1,12 @@
 import json
 from pymongo import MongoClient
 
+headers_open = {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Headers': '*',
+        'Access-Control-Allow-Methods': 'GET,PUT, PATCH, POST,DELETE,OPTIONS',
+    }
+
 client = MongoClient('mongodb+srv://misaelbd:Kk6n.c27JN.RSLK@mongodb-mbd.fqz75ib.mongodb.net/?retryWrites=true&w=majority&appName=MongoDB-MBD')
 
 
@@ -13,11 +19,11 @@ def lambda_handler(event, __):
 
         for product in products:
             product['_id'] = str(product['_id'])
-
             product['supplier'] = str(product['supplier'])
 
         return {
             "statusCode": 200,
+            "headers": headers_open,
             "body": json.dumps({
                 "message": "Productos encontrados",
                 "products": products
@@ -27,5 +33,8 @@ def lambda_handler(event, __):
     except Exception as e:
         return {
             "statusCode": 500,
-            "body": json.dumps({"message": str(e)})
+            "headers": headers_open,
+            "body": json.dumps({
+                "message": str(e)
+            })
         }

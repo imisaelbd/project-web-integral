@@ -2,6 +2,12 @@ import json
 from pymongo import MongoClient
 from bson import ObjectId
 
+headers_open = {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Headers': '*',
+        'Access-Control-Allow-Methods': 'GET,PUT, PATCH, POST,DELETE,OPTIONS',
+    }
+
 client = MongoClient('mongodb+srv://misaelbd:Kk6n.c27JN.RSLK@mongodb-mbd.fqz75ib.mongodb.net/?retryWrites=true&w=majority&appName=MongoDB-MBD')
 
 
@@ -14,6 +20,7 @@ def lambda_handler(event, __):
         if not user_id:
             return {
                 "statusCode": 400,
+                "headers": headers_open,
                 "body": json.dumps({
                     "message": "El ID del usuario es requerido en la URL"
                 })
@@ -22,6 +29,7 @@ def lambda_handler(event, __):
         if not ObjectId.is_valid(user_id):
             return {
                 "statusCode": 400,
+                "headers": headers_open,
                 "body": json.dumps({
                     "message": f"El ID del usuario '{user_id}' no es válido."
                 })
@@ -32,6 +40,7 @@ def lambda_handler(event, __):
         if result.deleted_count > 0:
             return {
                 "statusCode": 200,
+                "headers": headers_open,
                 "body": json.dumps({
                     "message": "Usuario eliminado correctamente"
                 }, indent=2)
@@ -39,6 +48,7 @@ def lambda_handler(event, __):
         else:
             return {
                 "statusCode": 404,
+                "headers": headers_open,
                 "body": json.dumps({
                     "message": "No se encontró el usuario con el ID proporcionado"
                 })
@@ -47,6 +57,7 @@ def lambda_handler(event, __):
     except Exception as e:
         return {
             "statusCode": 500,
+            "headers": headers_open,
             "body": json.dumps({
                 "message": str(e)
             })

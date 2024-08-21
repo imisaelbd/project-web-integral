@@ -2,6 +2,12 @@ import json
 from pymongo import MongoClient
 from bson import ObjectId
 
+headers_open = {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Headers': '*',
+        'Access-Control-Allow-Methods': 'GET,PUT, PATCH, POST,DELETE,OPTIONS',
+    }
+
 client = MongoClient('mongodb+srv://misaelbd:Kk6n.c27JN.RSLK@mongodb-mbd.fqz75ib.mongodb.net/?retryWrites=true&w=majority&appName=MongoDB-MBD')
 
 
@@ -15,6 +21,7 @@ def lambda_handler(event, __):
         if not body:
             return {
                 "statusCode": 400,
+                "headers": headers_open,
                 "body": json.dumps({
                     "message": "El cuerpo en la petición es requerido"
                 })
@@ -30,14 +37,16 @@ def lambda_handler(event, __):
         if not name or not price or not stock or not description or not id_supplier:
             return {
                 "statusCode": 400,
+                "headers": headers_open,
                 "body": json.dumps({
-                    "message": "Todos los campos son obliatorios"
+                    "message": "Todos los campos son requeridos"
                 })
             }
 
         if not ObjectId.is_valid(id_supplier):
             return {
                 "statusCode": 400,
+                "headers": headers_open,
                 "body": json.dumps({
                     "message": f"El ID del proveedor '{id_supplier}' no es válido."
                 })
@@ -49,8 +58,9 @@ def lambda_handler(event, __):
             existing_product['supplier'] = str(existing_product['supplier'])
             return {
                 "statusCode": 409,
+                "headers": headers_open,
                 "body": json.dumps({
-                    "message": f"El producto '{name}' ya existe en la base de datos, intenta con uno nuevo",
+                    "message": f"El producto '{name}' ya existe en la base de datos",
                     "product": existing_product
                 }, indent=2)
             }
@@ -59,6 +69,7 @@ def lambda_handler(event, __):
         if not supplier:
             return {
                 "statusCode": 404,
+                "headers": headers_open,
                 "body": json.dumps({
                     "message": f"El proveedor con el ID '{id_supplier}' no existe."
                 })
@@ -69,7 +80,6 @@ def lambda_handler(event, __):
             'price': price,
             'stock': stock,
             'description': description,
-
             'supplier': {
                 '$ref': 'suppliers',
                 '$id': ObjectId(id_supplier)
@@ -83,22 +93,25 @@ def lambda_handler(event, __):
             product['supplier'] = id_supplier
             return {
                 "statusCode": 200,
+                "headers": headers_open,
                 "body": json.dumps({
-                    "message": "Producto registrado exitosamente",
+                    "message": "Producto registrado correctamente",
                     "product": product
                 }, indent=2)
             }
         else:
             return {
                 "statusCode": 500,
+                "headers": headers_open,
                 "body": json.dumps({
-                    "message": "Ocurrio un error al insertar el producto"
+                    "message": "Error al insertar el producto"
                 })
             }
 
     except Exception as e:
         return {
             "statusCode": 500,
+            "headers": headers_open,
             "body": json.dumps({
                 "message": str(e)
             })

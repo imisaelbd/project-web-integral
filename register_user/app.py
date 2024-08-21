@@ -1,6 +1,12 @@
 import json
 from pymongo import MongoClient
 
+headers_open = {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Headers': '*',
+        'Access-Control-Allow-Methods': 'GET,PUT, PATCH, POST,DELETE,OPTIONS',
+    }
+
 client = MongoClient('mongodb+srv://misaelbd:Kk6n.c27JN.RSLK@mongodb-mbd.fqz75ib.mongodb.net/?retryWrites=true&w=majority&appName=MongoDB-MBD')
 
 
@@ -13,25 +19,23 @@ def lambda_handler(event, __):
         if not body:
             return {
                 "statusCode": 400,
+                "headers": headers_open,
                 "body": json.dumps({
                     "message": "El cuerpo en la petición es requerido"
                 })
             }
 
         data = json.loads(body)
-
         fullname = data.get('fullname')
-
         user = data.get('user')
-
         password = data.get('password')
-
 
         if not fullname or not user or not password:
             return {
                 "statusCode": 400,
+                "headers": headers_open,
                 "body": json.dumps({
-                    "message": "Todos los campos son obligatorios (fullname, user, password)"
+                    "message": "Todos los campos son requeridos (fullname, user, password)"
                 })
             }
 
@@ -40,6 +44,7 @@ def lambda_handler(event, __):
             existing_user['_id'] = str(existing_user['_id'])
             return {
                 "statusCode": 409,
+                "headers": headers_open,
                 "body": json.dumps({
                     "message": f"El usuario '{user}' ya existe en la base de datos",
                     "user": existing_user
@@ -58,6 +63,7 @@ def lambda_handler(event, __):
             user_data['_id'] = str(result.inserted_id)
             return {
                 "statusCode": 200,
+                "headers": headers_open,
                 "body": json.dumps({
                     "message": "Usuario registrado correctamente",
                     "user": user_data
@@ -66,14 +72,16 @@ def lambda_handler(event, __):
         else:
             return {
                 "statusCode": 500,
+                "headers": headers_open,
                 "body": json.dumps({
                     "message": "Error al insertar el usuario"
                 })
             }
 
-    except Exception as e: 
+    except Exception as e:
         return {
             "statusCode": 500,
+            "headers": headers_open,
             "body": json.dumps({
                 "message": str(e)
             })

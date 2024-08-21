@@ -2,6 +2,12 @@ import json
 from pymongo import MongoClient
 from bson import ObjectId
 
+headers_open = {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Headers': '*',
+        'Access-Control-Allow-Methods': 'GET,PUT, PATCH, POST,DELETE,OPTIONS',
+    }
+
 client = MongoClient('mongodb+srv://misaelbd:Kk6n.c27JN.RSLK@mongodb-mbd.fqz75ib.mongodb.net/?retryWrites=true&w=majority&appName=MongoDB-MBD')
 
 
@@ -15,6 +21,7 @@ def lambda_handler(event, __):
         if not id_user:
             return {
                 "statusCode": 400,
+                "headers": headers_open,
                 "body": json.dumps({
                     "message": "El campo 'id' es requerido en la URL"
                 })
@@ -23,6 +30,7 @@ def lambda_handler(event, __):
         if not ObjectId.is_valid(id_user):
             return {
                 "statusCode": 400,
+                "headers": headers_open,
                 "body": json.dumps({
                     "message": f"El ID del usuario '{id_user}' no es válido."
                 })
@@ -32,6 +40,7 @@ def lambda_handler(event, __):
         if not user:
             return {
                 "statusCode": 404,
+                "headers": headers_open,
                 "body": json.dumps({
                     "message": f"El usuario con el ID '{id_user}' no existe."
                 })
@@ -43,6 +52,7 @@ def lambda_handler(event, __):
             existing_cart['user'] = id_user
             return {
                 "statusCode": 200,
+                "headers": headers_open,
                 "body": json.dumps({
                     "message": "Ya existe un carrito para este usuario",
                     "cart": existing_cart
@@ -65,6 +75,7 @@ def lambda_handler(event, __):
             cart['user'] = id_user
             return {
                 "statusCode": 200,
+                "headers": headers_open,
                 "body": json.dumps({
                     "message": "Carrito creado correctamente",
                     "cart": cart
@@ -73,6 +84,7 @@ def lambda_handler(event, __):
         else:
             return {
                 "statusCode": 500,
+                "headers": headers_open,
                 "body": json.dumps({
                     "message": "Error al crear el carrito"
                 })
@@ -81,6 +93,7 @@ def lambda_handler(event, __):
     except Exception as e:
         return {
             "statusCode": 500,
+            "headers": headers_open,
             "body": json.dumps({
                 "message": str(e)
             })

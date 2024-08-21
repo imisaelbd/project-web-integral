@@ -3,13 +3,7 @@ import unittest
 import json
 
 mock_body = {
-
-    #prueba inicio de sesion
-
-
-
-
-"body": json.dumps({
+    "body": json.dumps({
         "username": "imisaelbd",
         "password": "Misa4258*"
     })
@@ -19,6 +13,4 @@ mock_body = {
 class TestApp(unittest.TestCase):
     def test_lambda_handler(self):
         result = app.lambda_handler(mock_body, None)
-
-        #imprimir el resultado de la prueba
         print(result)

@@ -2,6 +2,12 @@ import json
 from pymongo import MongoClient
 from bson import ObjectId
 
+headers_open = {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Headers': '*',
+        'Access-Control-Allow-Methods': 'GET,PUT, PATCH, POST,DELETE,OPTIONS',
+    }
+
 client = MongoClient('mongodb+srv://misaelbd:Kk6n.c27JN.RSLK@mongodb-mbd.fqz75ib.mongodb.net/?retryWrites=true&w=majority&appName=MongoDB-MBD')
 
 
@@ -14,6 +20,7 @@ def lambda_handler(event, __):
         if not user_id:
             return {
                 "statusCode": 400,
+                "headers": headers_open,
                 "body": json.dumps({
                     "message": "El ID del usuario es requerido en la ruta de la URL"
                 })
@@ -22,6 +29,7 @@ def lambda_handler(event, __):
         if not ObjectId.is_valid(user_id):
             return {
                 "statusCode": 400,
+                "headers": headers_open,
                 "body": json.dumps({
                     "message": f"'{user_id}' no es un ObjectId válido. Debe ser una cadena hexadecimal de 24 caracteres."
                 })
@@ -31,6 +39,7 @@ def lambda_handler(event, __):
         if not body:
             return {
                 "statusCode": 400,
+                "headers": headers_open,
                 "body": json.dumps({
                     "message": "El cuerpo de la petición es requerido"
                 })
@@ -44,6 +53,7 @@ def lambda_handler(event, __):
         if not any([fullname, username, password]):
             return {
                 "statusCode": 400,
+                "headers": headers_open,
                 "body": json.dumps({
                     "message": "Al menos un campo (fullname, user, password) es requerido para la actualización"
                 })
@@ -65,6 +75,7 @@ def lambda_handler(event, __):
         if result.modified_count > 0:
             return {
                 "statusCode": 200,
+                "headers": headers_open,
                 "body": json.dumps({
                     "message": "Usuario actualizado correctamente",
                     "updated_fields": update_fields
@@ -81,6 +92,7 @@ def lambda_handler(event, __):
     except Exception as e:
         return {
             "statusCode": 500,
+            "headers": headers_open,
             "body": json.dumps({
                 "message": str(e)
             })

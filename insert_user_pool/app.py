@@ -4,6 +4,11 @@ import string
 import boto3
 from botocore.exceptions import ClientError
 
+headers_open = {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Headers': '*',
+    'Access-Control-Allow-Methods': 'GET,PUT,POST,DELETE,OPTIONS',
+}
 
 def lambda_handler(event, __):
     body_parameters = json.loads(event["body"])
@@ -14,18 +19,19 @@ def lambda_handler(event, __):
     gender = body_parameters.get('gender')
     user_name = body_parameters.get('user_name')
     password = generate_temporary_password()
-    role = "Usuario"
+    role = "Users"
 
     if email is None or phone_number is None or name is None or age is None or gender is None:
         return {
             "statusCode": 400,
+            "headers": headers_open,
             "body": json.dumps({"message": "missing input parameters"})
         }
 
     try:
         # Configura el cliente de Cognito
         client = boto3.client('cognito-idp', region_name='us-east-1')
-        user_pool_id = "us-east-1_lGjX24BuI"
+        user_pool_id = "us-east-1_0CdCxDU3u"
 
         # Crea el usuario con correo no verificado y contraseña temporal que se envia automaticamente a su correo
         client.admin_create_user(
@@ -44,29 +50,30 @@ def lambda_handler(event, __):
             GroupName=role
         )
 
-        insert_db(email, phone_number, name, age, gender, password,user_name)
+        insert_db(email, phone_number, name, age, gender, password, user_name)
 
         return {
             'statusCode': 200,
+            'headers': headers_open,
             'body': json.dumps({"message": "User created successfully, verification email sent."})
         }
 
     except ClientError as e:
         return {
             'statusCode': 400,
+            'headers': headers_open,
             'body': json.dumps({"error_message": e.response['Error']['Message']})
         }
     except Exception as e:
         return {
             'statusCode': 500,
+            'headers': headers_open,
             'body': json.dumps({"error_message": str(e)})
         }
-
 
 def insert_db(email, phone_number, name, age, gender, password, user_name):
     print(f"insert into table value({email},{phone_number},{name},{age},{gender},{password},{user_name})")
     return True
-
 
 def generate_temporary_password(length=12):
     """Genera una contraseña temporal segura"""
@@ -74,14 +81,13 @@ def generate_temporary_password(length=12):
     characters = string.ascii_letters + string.digits + special_characters
 
     while True:
-        # Genera un password aleatorio
+        # Genera una contraseña aleatoria
         password = ''.join(random.choice(characters) for _ in range(length))
 
-        # Verifica la seguridad de los criterios
+        # Verifica los criterios
         has_digit = any(char.isdigit() for char in password)
         has_upper = any(char.isupper() for char in password)
         has_lower = any(char.islower() for char in password)
-
         has_special = any(char in special_characters for char in password)
 
         if has_digit and has_upper and has_lower and has_special and len(password) >= 8:

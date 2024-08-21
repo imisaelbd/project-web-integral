@@ -7,8 +7,12 @@ Description: >
 
 Globals:
   Function:
-    Timeout: 3
-
+    Timeout: 10
+  Api:
+    Cors:
+      AllowOrigin: "'*'"
+      AllowHeaders: "'*'"
+      AllowMethods: "'GET,PUT, PATCH, POST,DELETE,OPTIONS'"
 Resources:
   LambdaExecutionRole:
     Type: AWS::IAM::Role
@@ -21,7 +25,7 @@ Resources:
               Service: lambda.amazonaws.com
             Action: sts:AssumeRole
       Policies:
-        - PolicyName: LambdaBasicExecution
+        - PolicyName: LambdaCloudWatchPolicy
           PolicyDocument:
             Version: '2012-10-17'
             Statement:
@@ -31,43 +35,213 @@ Resources:
                   - logs:CreateLogStream
                   - logs:PutLogEvents
                 Resource: arn:aws:logs:*:*:*
+        - PolicyName: SSMGetParameter
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - secretsmanager:GetSecretValue
+                Resource: 'arn:aws:secretsmanager:us-east-1:*'
+        - PolicyName: CognitoAdminInitiateAuth
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - cognito-idp:AdminInitiateAuth
+                  - cognito-idp:AdminRespondToAuthChallenge
+                  - cognito-idp:AdminSetUserPassword
+                  - cognito-idp:AdminCreateUser
+                  - cognito-idp:AdminDeleteUser
+                  - cognito-idp:AdminUpdateUserAttributes
+                  - cognito-idp:AdminListGroupsForUser
+                  - cognito-idp:AdminAddUserToGroup
+                  - cognito-idp:AdminRemoveUserFromGroup
+                  - cognito-idp:AdminGetUser
+                  - cognito-idp:AdminGetUserAttributeVerificationCode
+                  - cognito-idp:AdminConfirmSignUp
+                  - cognito-idp:AdminForgetDevice
+                  - cognito-idp:AdminConfirmDevice
+                  - cognito-idp:AdminUpdateDeviceStatus
+                  - cognito-idp:AdminEnableUser
+                  - cognito-idp:AdminDisableUser
+                  - cognito-idp:AdminResetUserPassword
+                  - cognito-idp:AdminSetUserSettings
+                  - cognito-idp:AdminUpdateAuthEventFeedback
+                  - cognito-idp:AdminUserGlobalSignOut
+                Resource: 'arn:aws:cognito-idp:us-east-1:*:*'
+        - PolicyName: S3FullAccess
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:*
+                Resource: arn:aws:s3:::*
 
+        - PolicyName: VPCAndRDSManagement
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - ec2:CreateVpc
+                  - ec2:CreateSubnet
+                  - ec2:ModifySubnetAttribute
+                  - ec2:CreateSecurityGroup
+                  - ec2:AuthorizeSecurityGroupIngress
+                Resource: "*"
+              - Effect: Allow
+                Action:
+                  - rds:CreateDBInstance
+                  - rds:CreateDBSubnetGroup
+                  - rds:AddTagsToResource
+                Resource: "*"
+              - Effect: Allow
+                Action:
+                  - secretsmanager:CreateSecret
+                  - secretsmanager:PutSecretValue
+                Resource: "*"
+
+  MySecret:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Name: MiSecreto
+      Description: "Secreto para datos sensibles jejeje"
+      GenerateSecretString:
+        SecretStringTemplate: '{"username": "admin"}'
+        GenerateStringKey: "password"
+        PasswordLength: 30
+        ExcludeCharacters: "\"@/\\"
+
+  MyCognitoUserPool:
+    Type: AWS::Cognito::UserPool
+    Properties:
+      UserPoolName: MyUserPool
+      UsernameAttributes:
+        - email
+      AutoVerifiedAttributes:
+        - email
+      Policies:
+        PasswordPolicy:
+          MinimumLength: 8
+          RequireUppercase: True
+          RequireLowercase: True
+          RequireNumbers: True
+          RequireSymbols: True
+
+  AdminGroup:
+    Type: AWS::Cognito::UserPoolGroup
+    Properties:
+      GroupName: Admins
+      UserPoolId: !Ref MyCognitoUserPool
+      Precedence: 1
+
+  UsersGroup:
+    Type: AWS::Cognito::UserPoolGroup
+    Properties:
+      GroupName: Users
+      UserPoolId: !Ref MyCognitoUserPool
+      Precedence: 2
+
+  AuthApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: Prod
+      Name: AuthApi
+
+  AuthApiLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub '/aws/apigateway/${AuthApi}'
+      RetentionInDays: 14
+
+  # Set Password Lambda Function
+  SetPasswordFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: set_password/
+      Handler: app.lambda_handler
+      Runtime: python3.12
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Events:
+        SetPassword:
+          Type: Api
+          Properties:
+            RestApiId: !Ref AuthApi
+            Path: /set-password
+            Method: post
+      Environment:
+        Variables:
+          LOG_LEVEL: INFO
+      Tags:
+        Application: AuthApi
+
+  # Insert User Pool Lambda Function
+  InsertUserPoolFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: insert_user_pool/
+      Handler: app.lambda_handler
+      Runtime: python3.12
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Events:
+        InsertUserPool:
+          Type: Api
+          Properties:
+            RestApiId: !Ref AuthApi
+            Path: /insert-user
+            Method: post
+      Environment:
+        Variables:
+          LOG_LEVEL: INFO
+      Tags:
+        Application: AuthApi
+
+  # Login Lambda Function
+  LoginFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: login/
+      Handler: app.lambda_handler
+      Runtime: python3.12
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Events:
+        Login:
+          Type: Api
+          Properties:
+            RestApiId: !Ref AuthApi
+            Path: /login
+            Method: post
+      Environment:
+        Variables:
+          LOG_LEVEL: INFO
+      Tags:
+        Application: AuthApi
+
+  # API Gateway for the Product API
   ProductApi:
     Type: AWS::Serverless::Api
     Properties:
-      Name: "ProductApi"
       StageName: Prod
+      Name: ProductApi
+      Auth:
+        DefaultAuthorizer: CognitoAuthorizer
+        Authorizers:
+          CognitoAuthorizer:
+            UserPoolArn: !GetAtt MyCognitoUserPool.Arn
 
-  SupplierApi:
-    Type: AWS::Serverless::Api
+
+  # Log Group para API Gateway de ProductApi
+  ProductApiLogGroup:
+    Type: AWS::Logs::LogGroup
     Properties:
-      Name: "SupplierApi"
-      StageName: Prod
+      LogGroupName: !Sub '/aws/apigateway/${ProductApi}'
+      RetentionInDays: 14
 
-  UserApi:
-    Type: AWS::Serverless::Api
-    Properties:
-      Name: "UserApi"
-      StageName: Prod
 
-  RegisterUserFunction:
-    Type: AWS::Serverless::Function
-    Properties:
-      CodeUri: register_user/
-      Handler: app.lambda_handler
-      Runtime: python3.12
-      Architectures:
-        - x86_64
-      Events:
-        RegisterUser:
-          Type: Api
-          Properties:
-            RestApiId: !Ref UserApi
-            Path: /user/insert
-            Method: post
-      Policies:
-        - AWSLambdaBasicExecutionRole
-
+  # Función Lambda para Registrar Producto
   RegisterProductFunction:
     Type: AWS::Serverless::Function
     Properties:
@@ -76,6 +250,7 @@ Resources:
       Runtime: python3.12
       Architectures:
         - x86_64
+      Role: !GetAtt LambdaExecutionRole.Arn
       Events:
         RegisterProduct:
           Type: Api
@@ -83,63 +258,15 @@ Resources:
             RestApiId: !Ref ProductApi
             Path: /product/insert
             Method: post
-      Policies:
-        - AWSLambdaBasicExecutionRole
+            Auth:
+              Authorizer: CognitoAuthorizer
+      Environment:
+        Variables:
+          LOG_LEVEL: INFO
+      Tags:
+        Application: ProductApi
 
-  RegisterSupplierFunction:
-    Type: AWS::Serverless::Function
-    Properties:
-      CodeUri: register_supplier/
-      Handler: app.lambda_handler
-      Runtime: python3.12
-      Architectures:
-        - x86_64
-      Events:
-        RegisterSupplier:
-          Type: Api
-          Properties:
-            RestApiId: !Ref SupplierApi
-            Path: /supplier/insert
-            Method: post
-      Policies:
-        - AWSLambdaBasicExecutionRole
-
-  RegisterCartFunction:
-    Type: AWS::Serverless::Function
-    Properties:
-      CodeUri: register_cart/
-      Handler: app.lambda_handler
-      Runtime: python3.12
-      Architectures:
-        - x86_64
-      Events:
-        RegisterCart:
-          Type: Api
-          Properties:
-            RestApiId: !Ref ProductApi
-            Path: /cart/insert/{id}
-            Method: post
-      Policies:
-        - AWSLambdaBasicExecutionRole
-
-  GetUserFunction:
-    Type: AWS::Serverless::Function
-    Properties:
-      CodeUri: get_user/
-      Handler: app.lambda_handler
-      Runtime: python3.12
-      Architectures:
-        - x86_64
-      Events:
-        GetUser:
-          Type: Api
-          Properties:
-            RestApiId: !Ref UserApi
-            Path: /user/get/{id}
-            Method: get
-      Policies:
-        - AWSLambdaBasicExecutionRole
-
+  # Función Lambda para Obtener Producto
   GetProductFunction:
     Type: AWS::Serverless::Function
     Properties:
@@ -148,6 +275,7 @@ Resources:
       Runtime: python3.12
       Architectures:
         - x86_64
+      Role: !GetAtt LambdaExecutionRole.Arn
       Events:
         GetProduct:
           Type: Api
@@ -155,45 +283,15 @@ Resources:
             RestApiId: !Ref ProductApi
             Path: /product/get/{id}
             Method: get
-      Policies:
-        - AWSLambdaBasicExecutionRole
+            Auth:
+              Authorizer: CognitoAuthorizer
+      Environment:
+        Variables:
+          LOG_LEVEL: INFO
+      Tags:
+        Application: ProductApi
 
-  GetSupplierFunction:
-    Type: AWS::Serverless::Function
-    Properties:
-      CodeUri: get_supplier/
-      Handler: app.lambda_handler
-      Runtime: python3.12
-      Architectures:
-        - x86_64
-      Events:
-        GetSupplier:
-          Type: Api
-          Properties:
-            RestApiId: !Ref SupplierApi
-            Path: /supplier/get/{id}
-            Method: get
-      Policies:
-        - AWSLambdaBasicExecutionRole
-
-  GetUsersFunction:
-    Type: AWS::Serverless::Function
-    Properties:
-      CodeUri: get_users/
-      Handler: app.lambda_handler
-      Runtime: python3.12
-      Architectures:
-        - x86_64
-      Events:
-        GetUsers:
-          Type: Api
-          Properties:
-            RestApiId: !Ref UserApi
-            Path: /user/getAll
-            Method: get
-      Policies:
-        - AWSLambdaBasicExecutionRole
-
+  # Función Lambda para Obtener Todos los Productos
   GetProductsFunction:
     Type: AWS::Serverless::Function
     Properties:
@@ -202,6 +300,7 @@ Resources:
       Runtime: python3.12
       Architectures:
         - x86_64
+      Role: !GetAtt LambdaExecutionRole.Arn
       Events:
         GetProducts:
           Type: Api
@@ -209,45 +308,15 @@ Resources:
             RestApiId: !Ref ProductApi
             Path: /product/getAll
             Method: get
-      Policies:
-        - AWSLambdaBasicExecutionRole
+            Auth:
+              Authorizer: CognitoAuthorizer
+      Environment:
+        Variables:
+          LOG_LEVEL: INFO
+      Tags:
+        Application: ProductApi
 
-  GetSuppliersFunction:
-    Type: AWS::Serverless::Function
-    Properties:
-      CodeUri: get_suppliers/
-      Handler: app.lambda_handler
-      Runtime: python3.12
-      Architectures:
-        - x86_64
-      Events:
-        GetSuppliers:
-          Type: Api
-          Properties:
-            RestApiId: !Ref SupplierApi
-            Path: /supplier/getAll
-            Method: get
-      Policies:
-        - AWSLambdaBasicExecutionRole
-
-  UpdateUserFunction:
-    Type: AWS::Serverless::Function
-    Properties:
-      CodeUri: update_user/
-      Handler: app.lambda_handler
-      Runtime: python3.12
-      Architectures:
-        - x86_64
-      Events:
-        UpdateUser:
-          Type: Api
-          Properties:
-            RestApiId: !Ref UserApi
-            Path: /user/update/{id}
-            Method: patch
-      Policies:
-        - AWSLambdaBasicExecutionRole
-
+  # Función Lambda para Actualizar Producto
   UpdateProductFunction:
     Type: AWS::Serverless::Function
     Properties:
@@ -256,6 +325,7 @@ Resources:
       Runtime: python3.12
       Architectures:
         - x86_64
+      Role: !GetAtt LambdaExecutionRole.Arn
       Events:
         UpdateProduct:
           Type: Api
@@ -263,63 +333,15 @@ Resources:
             RestApiId: !Ref ProductApi
             Path: /product/update/{id}
             Method: patch
-      Policies:
-        - AWSLambdaBasicExecutionRole
+            Auth:
+              Authorizer: CognitoAuthorizer
+      Environment:
+        Variables:
+          LOG_LEVEL: INFO
+      Tags:
+        Application: ProductApi
 
-  UpdateSupplierFunction:
-    Type: AWS::Serverless::Function
-    Properties:
-      CodeUri: update_supplier/
-      Handler: app.lambda_handler
-      Runtime: python3.12
-      Architectures:
-        - x86_64
-      Events:
-        UpdateSupplier:
-          Type: Api
-          Properties:
-            RestApiId: !Ref SupplierApi
-            Path: /supplier/update/{id}
-            Method: patch
-      Policies:
-        - AWSLambdaBasicExecutionRole
-
-  UpdateCartFunction:
-    Type: AWS::Serverless::Function
-    Properties:
-      CodeUri: update_cart/
-      Handler: app.lambda_handler
-      Runtime: python3.12
-      Architectures:
-        - x86_64
-      Events:
-        UpdateCart:
-          Type: Api
-          Properties:
-            RestApiId: !Ref ProductApi
-            Path: /cart/update/{id}
-            Method: patch
-      Policies:
-        - AWSLambdaBasicExecutionRole
-
-  DeleteUserFunction:
-    Type: AWS::Serverless::Function
-    Properties:
-      CodeUri: delete_user/
-      Handler: app.lambda_handler
-      Runtime: python3.12
-      Architectures:
-        - x86_64
-      Events:
-        DeleteUser:
-          Type: Api
-          Properties:
-            RestApiId: !Ref UserApi
-            Path: /user/delete/{id}
-            Method: delete
-      Policies:
-        - AWSLambdaBasicExecutionRole
-
+  # Función Lambda para Eliminar Producto
   DeleteProductFunction:
     Type: AWS::Serverless::Function
     Properties:
@@ -328,6 +350,7 @@ Resources:
       Runtime: python3.12
       Architectures:
         - x86_64
+      Role: !GetAtt LambdaExecutionRole.Arn
       Events:
         DeleteProduct:
           Type: Api
@@ -335,9 +358,171 @@ Resources:
             RestApiId: !Ref ProductApi
             Path: /product/delete/{id}
             Method: delete
-      Policies:
-        - AWSLambdaBasicExecutionRole
+            Auth:
+              Authorizer: CognitoAuthorizer
+      Environment:
+        Variables:
+          LOG_LEVEL: INFO
+      Tags:
+        Application: ProductApi
 
+
+  # API Gateway for Supplier API
+  SupplierApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: Prod
+      Name: SupplierApi
+      Auth:
+        DefaultAuthorizer: CognitoAuthorizer
+        Authorizers:
+          CognitoAuthorizer:
+            UserPoolArn: !GetAtt MyCognitoUserPool.Arn
+
+
+  # Log Group for API Gateway
+  SupplierApiLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub '/aws/apigateway/${SupplierApi}'
+      RetentionInDays: 14
+
+  # Log Group for RegisterSupplierFunction
+  RegisterSupplierLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub '/aws/lambda/${RegisterSupplierFunction}'
+      RetentionInDays: 14
+
+  # Register Supplier Function
+  RegisterSupplierFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: register_supplier/
+      Handler: app.lambda_handler
+      Runtime: python3.12
+      Architectures:
+        - x86_64
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Events:
+        RegisterSupplier:
+          Type: Api
+          Properties:
+            RestApiId: !Ref SupplierApi
+            Path: /supplier/insert
+            Method: post
+            Auth:
+              Authorizer: CognitoAuthorizer
+      Environment:
+        Variables:
+          LOG_LEVEL: INFO
+      Tags:
+        Application: SupplierApi
+
+  # Log Group for GetSupplierFunction
+  GetSupplierLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub '/aws/lambda/${GetSupplierFunction}'
+      RetentionInDays: 14
+
+  # Get Supplier Function
+  GetSupplierFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: get_supplier/
+      Handler: app.lambda_handler
+      Runtime: python3.12
+      Architectures:
+        - x86_64
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Events:
+        GetSupplier:
+          Type: Api
+          Properties:
+            RestApiId: !Ref SupplierApi
+            Path: /supplier/get/{id}
+            Method: get
+            Auth:
+              Authorizer: CognitoAuthorizer
+      Environment:
+        Variables:
+          LOG_LEVEL: INFO
+      Tags:
+        Application: SupplierApi
+
+  # Log Group for GetSuppliersFunction
+  GetSuppliersLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub '/aws/lambda/${GetSuppliersFunction}'
+      RetentionInDays: 14
+
+  # Get All Suppliers Function
+  GetSuppliersFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: get_suppliers/
+      Handler: app.lambda_handler
+      Runtime: python3.12
+      Architectures:
+        - x86_64
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Events:
+        GetSuppliers:
+          Type: Api
+          Properties:
+            RestApiId: !Ref SupplierApi
+            Path: /supplier/getAll
+            Method: get
+            Auth:
+              Authorizer: CognitoAuthorizer
+      Environment:
+        Variables:
+          LOG_LEVEL: INFO
+      Tags:
+        Application: SupplierApi
+
+  # Log Group for UpdateSupplierFunction
+  UpdateSupplierLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub '/aws/lambda/${UpdateSupplierFunction}'
+      RetentionInDays: 14
+
+  # Update Supplier Function
+  UpdateSupplierFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: update_supplier/
+      Handler: app.lambda_handler
+      Runtime: python3.12
+      Architectures:
+        - x86_64
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Events:
+        UpdateSupplier:
+          Type: Api
+          Properties:
+            RestApiId: !Ref SupplierApi
+            Path: /supplier/update/{id}
+            Method: patch
+            Auth:
+              Authorizer: CognitoAuthorizer
+      Environment:
+        Variables:
+          LOG_LEVEL: INFO
+      Tags:
+        Application: SupplierApi
+
+  # Log Group for DeleteSupplierFunction
+  DeleteSupplierLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub '/aws/lambda/${DeleteSupplierFunction}'
+      RetentionInDays: 14
+
+  # Delete Supplier Function
   DeleteSupplierFunction:
     Type: AWS::Serverless::Function
     Properties:
@@ -346,6 +531,7 @@ Resources:
       Runtime: python3.12
       Architectures:
         - x86_64
+      Role: !GetAtt LambdaExecutionRole.Arn
       Events:
         DeleteSupplier:
           Type: Api
@@ -353,9 +539,204 @@ Resources:
             RestApiId: !Ref SupplierApi
             Path: /supplier/delete/{id}
             Method: delete
-      Policies:
-        - AWSLambdaBasicExecutionRole
+            Auth:
+              Authorizer: CognitoAuthorizer
+      Environment:
+        Variables:
+          LOG_LEVEL: INFO
+      Tags:
+        Application: SupplierApi
 
+  # API Gateway para User API
+  UserApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: Prod
+      Name: UserApi
+      Auth:
+        DefaultAuthorizer: CognitoAuthorizer
+        Authorizers:
+          CognitoAuthorizer:
+            UserPoolArn: !GetAtt MyCognitoUserPool.Arn
+
+
+  # Log Group para User API
+  UserApiLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub '/aws/apigateway/${UserApi}'
+      RetentionInDays: 14
+
+  # Registro de Usuario
+  RegisterUserFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: register_user/
+      Handler: app.lambda_handler
+      Runtime: python3.12
+      Architectures:
+        - x86_64
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Events:
+        RegisterUser:
+          Type: Api
+          Properties:
+            RestApiId: !Ref UserApi
+            Path: /user/insert
+            Method: post
+            Auth:
+              Authorizer: CognitoAuthorizer
+
+  # Log Group para RegisterUserFunction
+  RegisterUserLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub '/aws/lambda/${RegisterUserFunction}'
+      RetentionInDays: 14
+
+  # Obtener Usuario
+  GetUserFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: get_user/
+      Handler: app.lambda_handler
+      Runtime: python3.12
+      Architectures:
+        - x86_64
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Events:
+        GetUser:
+          Type: Api
+          Properties:
+            RestApiId: !Ref UserApi
+            Path: /user/get/{id}
+            Method: get
+            Auth:
+              Authorizer: CognitoAuthorizer
+
+  # Log Group para GetUserFunction
+  GetUserLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub '/aws/lambda/${GetUserFunction}'
+      RetentionInDays: 14
+
+  # Obtener Todos los Usuarios
+  GetUsersFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: get_users/
+      Handler: app.lambda_handler
+      Runtime: python3.12
+      Architectures:
+        - x86_64
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Events:
+        GetUsers:
+          Type: Api
+          Properties:
+            RestApiId: !Ref UserApi
+            Path: /user/getAll
+            Method: get
+            Auth:
+              Authorizer: CognitoAuthorizer
+
+  # Log Group para GetUsersFunction
+  GetUsersLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub '/aws/lambda/${GetUsersFunction}'
+      RetentionInDays: 14
+
+  # Actualizar Usuario
+  UpdateUserFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: update_user/
+      Handler: app.lambda_handler
+      Runtime: python3.12
+      Architectures:
+        - x86_64
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Events:
+        UpdateUser:
+          Type: Api
+          Properties:
+            RestApiId: !Ref UserApi
+            Path: /user/update/{id}
+            Method: patch
+            Auth:
+              Authorizer: CognitoAuthorizer
+
+  # Log Group para UpdateUserFunction
+  UpdateUserLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub '/aws/lambda/${UpdateUserFunction}'
+      RetentionInDays: 14
+
+  # Eliminar Usuario
+  DeleteUserFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: delete_user/
+      Handler: app.lambda_handler
+      Runtime: python3.12
+      Architectures:
+        - x86_64
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Events:
+        DeleteUser:
+          Type: Api
+          Properties:
+            RestApiId: !Ref UserApi
+            Path: /user/delete/{id}
+            Method: delete
+            Auth:
+              Authorizer: CognitoAuthorizer
+
+  # Log Group para DeleteUserFunction
+  DeleteUserLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub '/aws/lambda/${DeleteUserFunction}'
+      RetentionInDays: 14
+
+  # Registrar Carrito
+  RegisterCartFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: register_cart/
+      Handler: app.lambda_handler
+      Runtime: python3.12
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Events:
+        RegisterCart:
+          Type: Api
+          Properties:
+            RestApiId: !Ref UserApi
+            Path: /cart/insert/{id}
+            Method: post
+            Auth:
+              Authorizer: CognitoAuthorizer
+
+  # Actualizar Carrito
+  UpdateCartFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: update_cart/
+      Handler: app.lambda_handler
+      Runtime: python3.12
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Events:
+        UpdateCart:
+          Type: Api
+          Properties:
+            RestApiId: !Ref UserApi
+            Path: /cart/update/{id}
+            Method: patch
+            Auth:
+              Authorizer: CognitoAuthorizer
 
 Outputs:
   RegisterUserApiUrl:
@@ -421,6 +802,36 @@ Outputs:
   DeleteSupplierApiUrl:
     Description: "Delete Supplier API Gateway endpoint"
     Value: !Sub "https://${SupplierApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/supplier/delete/{id}"
+
+  # Set Password API Gateway endpoint
+  SetPasswordApiUrl:
+    Description: "Set Password API Gateway endpoint"
+    Value: !Sub "https://${ProductApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/set-password"
+
+  # Insert User Pool API Gateway endpoint
+  InsertUserPoolApiUrl:
+    Description: "Insert User Pool API Gateway endpoint"
+    Value: !Sub "https://${ProductApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/insert-user"
+
+  # Login API Gateway endpoint
+  LoginApiUrl:
+    Description: "Login API Gateway endpoint"
+    Value: !Sub "https://${ProductApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/login"
+
+  # Set Password Lambda Function ARN
+  SetPasswordFunctionArn:
+    Description: "Set Password Lambda Function ARN"
+    Value: !GetAtt SetPasswordFunction.Arn
+
+  # Insert User Pool Lambda Function ARN
+  InsertUserPoolFunctionArn:
+    Description: "Insert User Pool Lambda Function ARN"
+    Value: !GetAtt InsertUserPoolFunction.Arn
+
+  # Login Lambda Function ARN
+  LoginFunctionArn:
+    Description: "Login Lambda Function ARN"
+    Value: !GetAtt LoginFunction.Arn
 
   RegisterUserFunctionArn:
     Description: "Register User Lambda Function ARN"
@@ -489,4 +900,3 @@ Outputs:
   DeleteSupplierFunctionArn:
     Description: "Delete Supplier Lambda Function ARN"
     Value: !GetAtt DeleteSupplierFunction.Arn
-
