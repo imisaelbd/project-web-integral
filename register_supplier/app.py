@@ -1,6 +1,12 @@
 import json
 from pymongo import MongoClient
 
+headers_open = {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Headers': '*',
+        'Access-Control-Allow-Methods': 'GET,PUT, PATCH, POST,DELETE,OPTIONS',
+    }
+
 client = MongoClient('mongodb+srv://misaelbd:Kk6n.c27JN.RSLK@mongodb-mbd.fqz75ib.mongodb.net/?retryWrites=true&w=majority&appName=MongoDB-MBD')
 
 
@@ -13,6 +19,7 @@ def lambda_handler(event, __):
         if not body:
             return {
                 "statusCode": 400,
+                "headers": headers_open,
                 "body": json.dumps({
                     "message": "El cuerpo en la petición es requerido"
                 })
@@ -26,6 +33,7 @@ def lambda_handler(event, __):
         if not name or not contact or not phone:
             return {
                 "statusCode": 400,
+                "headers": headers_open,
                 "body": json.dumps({
                     "message": "Todos los campos son requeridos (nombre, contacto, teléfono)"
                 })
@@ -36,6 +44,7 @@ def lambda_handler(event, __):
             existing_supplier['_id'] = str(existing_supplier['_id'])
             return {
                 "statusCode": 409,
+                "headers": headers_open,
                 "body": json.dumps({
                     "message": f"El proveedor '{name}' ya existe en la base de datos",
                     "supplier": existing_supplier
@@ -54,6 +63,7 @@ def lambda_handler(event, __):
             supplier['_id'] = str(result.inserted_id)
             return {
                 "statusCode": 200,
+                "headers": headers_open,
                 "body": json.dumps({
                     "message": "Proveedor registrado correctamente",
                     "supplier": supplier
@@ -62,6 +72,7 @@ def lambda_handler(event, __):
         else:
             return {
                 "statusCode": 500,
+                "headers": headers_open,
                 "body": json.dumps({
                     "message": "Error al insertar el proveedor"
                 })
@@ -70,6 +81,7 @@ def lambda_handler(event, __):
     except Exception as e:
         return {
             "statusCode": 500,
+            "headers": headers_open,
             "body": json.dumps({
                 "message": str(e)
             })

@@ -2,6 +2,12 @@ import json
 from pymongo import MongoClient
 from bson import ObjectId
 
+headers_open = {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Headers': '*',
+        'Access-Control-Allow-Methods': 'GET,PUT, PATCH, POST,DELETE,OPTIONS',
+    }
+
 client = MongoClient('mongodb+srv://misaelbd:Kk6n.c27JN.RSLK@mongodb-mbd.fqz75ib.mongodb.net/?retryWrites=true&w=majority&appName=MongoDB-MBD')
 
 
@@ -14,6 +20,7 @@ def lambda_handler(event, __):
         if not supplier_id:
             return {
                 "statusCode": 400,
+                "headers": headers_open,
                 "body": json.dumps({
                     "message": "El ID del proveedor es requerido en la ruta de la URL"
                 })
@@ -22,6 +29,7 @@ def lambda_handler(event, __):
         if not ObjectId.is_valid(supplier_id):
             return {
                 "statusCode": 400,
+                "headers": headers_open,
                 "body": json.dumps({
                     "message": f"'{supplier_id}' no es un ObjectId válido. Debe ser una cadena hexadecimal de 24 caracteres."
                 })
@@ -33,6 +41,7 @@ def lambda_handler(event, __):
             supplier['_id'] = str(supplier['_id'])
             return {
                 "statusCode": 200,
+                "headers": headers_open,
                 "body": json.dumps({
                     "message": "Proveedor encontrado",
                     "supplier": supplier
@@ -41,6 +50,7 @@ def lambda_handler(event, __):
         else:
             return {
                 "statusCode": 404,
+                "headers": headers_open,
                 "body": json.dumps({
                     "message": "No se encontró el proveedor con el ID proporcionado"
                 })
@@ -49,6 +59,7 @@ def lambda_handler(event, __):
     except Exception as e:
         return {
             "statusCode": 500,
+            "headers": headers_open,
             "body": json.dumps({
                 "message": str(e)
             })
